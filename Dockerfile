@@ -4,11 +4,10 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
+EXPOSE 80
 
-# INSTALL FONTS
-
+# FONT
+USER root
 RUN apt-get update && apt-get --fix-broken install -y \
 	wget \
 	dpkg \
@@ -16,6 +15,7 @@ RUN apt-get update && apt-get --fix-broken install -y \
 	xfonts-utils \
 	fontconfig \
 	libfontconfig1 \
+	libc6-dev \
 	libfreetype6
 
 RUN wget http://ftp.de.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.8_all.deb 
@@ -24,7 +24,7 @@ RUN dpkg -i ttf-mscorefonts-installer_3.8_all.deb
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 RUN apt-get install ttf-mscorefonts-installer
 
-# Refresh system font cache
+# refresh system font cache
 RUN fc-cache -f -s -v
 
 
