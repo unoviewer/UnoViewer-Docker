@@ -4,7 +4,7 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
-EXPOSE 80
+EXPOSE 8080
 
 # FONT
 USER root
@@ -26,7 +26,6 @@ RUN apt-get install ttf-mscorefonts-installer
 
 # refresh system font cache
 RUN fc-cache -f -s -v
-
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build

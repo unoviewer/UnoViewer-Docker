@@ -64,7 +64,7 @@ namespace UnoViewer_Docker.Controllers
         [HttpPost]
         public IActionResult OpenFile(string fileName)
         {
-            var pathToFile = Path.Combine(Path.Combine(_hostingEnvironment.WebRootPath, @"files\"), fileName);
+            var pathToFile = Path.Combine(Path.Combine(_hostingEnvironment.WebRootPath, @"files"), fileName);
 
             if (!System.IO.File.Exists(pathToFile))
             {
