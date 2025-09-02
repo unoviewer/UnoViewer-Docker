@@ -1,0 +1,291 @@
+﻿@{
+    ViewData["Title"] = "UnoViewer Docker Linux";
+}
+
+<img id="imgWait" src="/unoViewer/img/loading-wait.svg" alt="Loading..." />
+
+<div class="row">
+    <div id="divUnoViewer" class="col-sm-12">
+        <div id="div_ctlDoc"></div>
+    </div>
+</div>
+
+@section Css {
+
+    <link href="/unoViewer/css/viewer.css" rel="stylesheet" />
+
+    <!-- menu css-->
+    <link href="/unoViewer/css/desktop-menu.css" rel="stylesheet" />
+    <link href="/unoViewer/css/mobile-menu.css" rel="stylesheet" />
+
+    <!-- show hide menu-->
+    <link href="/unoViewer/css/uno-menu.css" rel="stylesheet" />
+
+    <style>
+        /* Container DIV */
+
+        #divUnoViewer {
+            height: 95vh;
+            width: 98vw;
+        }
+
+        #imgWait {
+            height: 25vh;
+            width: 25vw;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+    </style>
+
+}
+
+@section Scripts {
+
+    <script src="/unoViewer/js/unoViewer.js"></script>
+
+    <script>
+
+         /* global */
+         var objUno = null;
+         var resizing = false;
+         var isMobile = IsMobile();
+
+
+         function InitViewer()
+         {
+             var viewerSettings = null;
+
+             /* Get the viewer viewer settings */
+              $.ajax({
+                 type: "GET",
+                 cache: false,
+                 async: false,
+                 timeout: 10000, // 10 seconds
+                 url: "/Home/ViewerSettings",
+                 success: function (json) {
+                     viewerSettings = json;
+                 },
+                 error: function (err) {
+                     alert("Unable to load ViewerSettings. " + err.responseText);
+                 }
+             });
+
+            if(null !== viewerSettings)
+            {
+                objUno = $("#div_ctlDoc").unoViewer(viewerSettings);
+
+                /* Build the UI */
+                objUno.UI();
+
+                /* Change viewer height as per page */
+                SetViewerHeight();
+
+                /* Attach all events */
+
+                objUno.on('linkClicked', function (e) {
+
+                    if (e.url && e.url.length > 0) {
+                        window.open(e.url);
+                    }
+                    else if (e.meta && e.meta.length > 0) {
+                        alert(e.meta);
+                    }
+
+                });
+
+                objUno.on('clipboardCopied', function (e) {
+
+                    navigator.clipboard.writeText(e.clipboard).then(() => {
+                        // alert("Successfully copied.");
+                    });
+
+                    // Optional call to change page to current
+                    // objUno.GotoPage(e.page);
+
+                });
+
+                objUno.on('textCopied', function (e) {
+
+                    navigator.clipboard.writeText(e.text).then(() => {
+                        // alert("Successfully copied.");
+                    });
+
+                });
+
+
+                objUno.on('viewerError', function (e) {
+                    alert(e.msg);
+                });
+
+                objUno.on('pageClicked', function (e) {
+                    // alert(e.page);
+                });
+
+                objUno.on('thumbnailClicked', function (e) {
+                    // alert(e.thumb);
+                });
+
+
+                objUno.on('fileOpen', function () {
+                    alert("File open called.");
+                });
+
+                objUno.on('fileClose', function () {
+                    objUno.Close(true);
+                });
+
+                objUno.on('splitterResized', function () {
+
+                });
+
+                objUno.on('viewerBusy', function () {
+
+                });
+
+                objUno.on('languageChanged', function (e) {
+                    // alert(e.langName);
+
+                    setTimeout(function () {
+
+                        $(".menuWord .unoText").html("Word");
+                        $(".menuExcel .unoText").html("Excel");
+                        $(".menuPowerPoint .unoText").html("PowerPoint");
+                        $(".menuPdf .unoText").html("PDF");
+
+                    }, 500);
+
+                });
+
+                objUno.on('themeChanged', function (e) {
+                    // alert(e.themeName);
+                });
+
+                objUno.on('viewerReady', function () {
+                    $("#imgWait").hide();
+                });
+
+                objUno.on('pinchEnd', function (e) {
+
+                    objUno.ZoomStep(20);
+
+                    if (e.zoomMode == "ZoomIn") {
+                        objUno.Zoom(true);
+                    }
+                    else {
+                        objUno.Zoom(false);
+                    }
+
+                    objUno.ZoomStep(10);
+                });
+
+                /* End attaching events */
+
+            }
+
+        }
+
+        function OpenFile(fileName) {
+
+            objUno.Close(true);
+
+            /* Optional, show Loading */
+            objUno.Loading(true);
+
+            /* Open the file on the server and get back its token */
+
+            $.ajax({
+                type: "POST",
+                cache: false,
+                async: true,
+                timeout: 30000, // 30 seconds
+                url: "/Home/OpenFile?fileName=" + fileName,
+                success: function (token) {
+
+                        objUno.Loading(false);
+
+                        /* Show the document in UI */
+                        objUno.View(token);
+
+                        // Optional, hide thumbnails when mobile
+
+                        if (isMobile) {
+                            objUno.ShowThumbnails(false);
+                        }
+
+                },
+                error: function (err) {
+                    alert("Unable to open file. " + err.responseText);
+                    objUno.Loading(false);
+                }
+            });
+        }
+
+        function SetViewerHeight() {
+            if (resizing === true) { return; }
+
+            resizing = true;
+
+            setTimeout(function () {
+
+                var h = "innerHeight" in window ? window.innerHeight : document.documentElement.offsetHeight;
+                $("#divUnoViewer").height(h - 120);
+
+                resizing = false;
+
+            }, 500);
+        }
+
+
+        function IsMobile() {
+            var _isMobile = (window.navigator.maxTouchPoints || 'ontouchstart' in document);
+            return _isMobile;
+        }
+
+
+             $(document).ready(function () {
+
+                 // Initialise then viewer first
+                 InitViewer();
+
+                 // Attach resize event
+                 $(window).on("load resize orientationchange", function () {
+                     SetViewerHeight();
+                 });
+
+                 // Prevent postback on enter key
+                 $(document).keypress(function (e) {
+                     if (e.keyCode === 13) {
+                         e.preventDefault();
+                         return false;
+                     }
+                 });
+
+                 // Open default file
+                 OpenFile("Sample.pdf");
+
+                 // Hide thumbnails when mobile ( optional )
+
+                 if (isMobile) {
+                     objUno.ShowThumbnails(false);
+                 }
+
+                 $(".menuWord .unoText").html("Word");
+                 $(".menuExcel .unoText").html("Excel");
+                 $(".menuPowerPoint .unoText").html("PowerPoint");
+                 $(".menuPdf .unoText").html("PDF");
+
+                 $(".menuWord").on("click", function () { OpenFile("Sample.docx"); });
+                 $(".menuExcel").on("click", function () { OpenFile("Sample.xls"); });
+                 $(".menuPowerPoint").on("click", function () { OpenFile("Sample.ppt"); });
+                 $(".menuPdf").on("click", function () { OpenFile("Sample.pdf"); });
+
+                 $("#imgWait").hide();
+
+              });
+
+
+    </script>
+
+}
