@@ -108,9 +108,16 @@
 
                 objUno.on('textCopied', function (e) {
 
-                    navigator.clipboard.writeText(e.text).then(() => {
-                        // alert("Successfully copied.");
-                    });
+                    if (window.location.protocol === 'https:')
+                    {
+                        navigator.clipboard.writeText(e.text).then(() => {
+                            // alert("Successfully copied.");
+                        });
+                    }
+                    else
+                    {
+                        alert(e.text);
+                    }
 
                 });
 
